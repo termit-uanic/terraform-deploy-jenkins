@@ -52,3 +52,17 @@ variable "key_name" {
   default     = "jenkins"
   description = "SSH key name in your AWS account for AWS instances"
 }
+
+# Important!
+# This variable is not used now. Image Jenkins ignore that.
+variable "jenkins_user_name" {
+  default     = "admin"
+  description = "The user name in Jenkins"
+}
+
+# Important!
+# This variable is not used now. Image Jenkins ignore that.
+variable "jenkins_user_password" {
+  default     = "PaSsw0rD"
+  description = "The user password in Jenkins"
+}

@@ -236,7 +236,7 @@ resource "aws_instance" "jenkins" {
   vpc_security_group_ids = [aws_security_group.sg_jenkins.id] # for not default VPC we need use vpc_security_group_ids instead security_groups
   ami                    = data.aws_ami.ami_latest.id
   key_name               = var.key_name
-  user_data              = file("templates/user_data.sh.tpl")
+  user_data              = templatefile("templates/user_data.sh.tpl", { JENKINS_USER_NAME = var.jenkins_user_name, JENKINS_USER_PASSWORD = var.jenkins_user_password })
   iam_instance_profile   = aws_iam_instance_profile.s3_access_profile.name
   availability_zone      = "${var.region}${var.availability_zone}"
   subnet_id              = aws_subnet.jenkins_subnet.id

@@ -11,7 +11,11 @@ $ export AWS_DEFAULT_REGION= <your bucket region e.g. us-west-2>
 ## Key pair
 You should be set in `variables.tf` name of ssh key from EC2
 
+## Jenkins user name and passwd
+You should be change in `variables.tf` Jenkins user name and password
+
 ## local run jenkins
+It's **only for local** test Docker image
 ```
 docker run -d \
     --restart=always \
@@ -19,8 +23,9 @@ docker run -d \
     -p 8888:8080 \
     -p 50000:50000 \
     --mount type=bind,source=/opt/jenkins_home,target=/var/jenkins_home \
-    --env JENKINS_ADMIN_ID=admin \
-    --env JENKINS_ADMIN_PASSWORD=password \
     --env JAVA_OPTS="-Djenkins.install.runSetupWizard=false" \
+    --env JENKINS_OPTS="--argumentsRealm.roles.user=admin --argumentsRealm.passwd.admin=admin --argumentsRealm.roles.admin=admin" \
     jenkins/jenkins:lts
 ```
+**IMPORTANT**:
+This image (jenkins/jenkins:lts) is ignore variables argumentsRealm*
