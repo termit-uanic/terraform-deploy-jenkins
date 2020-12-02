@@ -41,11 +41,11 @@ data "aws_ami" "ami_latest" {
 }
 
 ###############################################################
-# create s3 backet for jenkins data
+# create s3 backet for jenkins backup
 # name must be without dot - for able to mount in EC2 as drive
 ###############################################################
-resource "aws_s3_bucket" "jenkins_data" {
-  bucket = "${var.company_name}--jenkins-data--${var.region}--${data.aws_caller_identity.current.account_id}"
+resource "aws_s3_bucket" "jenkins_backup" {
+  bucket = "${var.company_name}--jenkins-backup--${var.region}--${data.aws_caller_identity.current.account_id}"
   acl    = "private"
 
   versioning {
@@ -94,7 +94,7 @@ resource "aws_iam_policy" "s3_access_policy" {
   path        = "/"
   description = "Write access to s3 bucket"
 
-  policy = templatefile("templates/s3_policy.json.tpl", { name_bucket = aws_s3_bucket.jenkins_data.bucket })
+  policy = templatefile("${path.module}/templates/s3_policy.json.tpl", { name_bucket = aws_s3_bucket.jenkins_backup.bucket })
 }
 
 ###############################################################
@@ -236,7 +236,7 @@ resource "aws_instance" "jenkins" {
   vpc_security_group_ids = [aws_security_group.sg_jenkins.id] # for not default VPC we need use vpc_security_group_ids instead security_groups
   ami                    = data.aws_ami.ami_latest.id
   key_name               = var.key_name
-  user_data              = templatefile("templates/user_data.sh.tpl", { JENKINS_USER_NAME = var.jenkins_user_name, JENKINS_USER_PASSWORD = var.jenkins_user_password })
+  user_data              = templatefile("${path.module}/templates/user_data.sh.tpl", { JENKINS_USER_NAME = var.jenkins_user_name, JENKINS_USER_PASSWORD = var.jenkins_user_password })
   iam_instance_profile   = aws_iam_instance_profile.s3_access_profile.name
   availability_zone      = "${var.region}${var.availability_zone}"
   subnet_id              = aws_subnet.jenkins_subnet.id
@@ -248,6 +248,6 @@ resource "aws_instance" "jenkins" {
 
   depends_on = [
     aws_iam_role.s3_access_role,
-    aws_s3_bucket.jenkins_data,
+    aws_s3_bucket.jenkins_backup,
   ]
 }
