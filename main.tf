@@ -167,24 +167,20 @@ resource "aws_internet_gateway" "jenkins_gateway" {
 }
 
 ###############################################################
-# route table: adding tags
+# route table: adding route and tags
 ###############################################################
 resource "aws_default_route_table" "main_route_table" {
   default_route_table_id = aws_vpc.jenkins_vpc.main_route_table_id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.jenkins_gateway.id
+  }
 
   tags = {
     Name        = var.jenkins_name
     Environment = var.tag_enviroment
   }
-}
-
-###############################################################
-# route table: added route
-###############################################################
-resource "aws_route" "public_route" {
-  route_table_id         = aws_vpc.jenkins_vpc.main_route_table_id
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.jenkins_gateway.id
 }
 
 ###############################################################
