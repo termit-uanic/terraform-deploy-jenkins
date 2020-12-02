@@ -47,35 +47,41 @@ variable "jenkins_name" {
 }
 
 variable "instance_type" {
-  default     = "t2.micro"
-  type        = string
   description = "Kind of type instance"
+  type        = string
+  default     = "t2.micro"
 }
 
 variable "cidr_block" {
-  default     = "192.168.1.0/24"
-  type        = string
   description = "The CIDR block for vpc and subnet"
+  type        = string
+  default     = "192.168.1.0/24"
 }
 
 variable "key_name" {
-  default     = "jenkins"
-  type        = string
   description = "SSH key name in your AWS account for AWS instances"
+  type        = string
+  default     = "jenkins"
+}
+
+variable "create_s3_bucket" {
+  description = "Create S3 bucket for backup"
+  type        = bool
+  default     = true
 }
 
 # Important!
 # This variable is not used now. Image Jenkins ignore that.
 variable "jenkins_user_name" {
-  default     = "admin"
-  type        = string
   description = "The user name in Jenkins"
+  type        = string
+  default     = "admin"
 }
 
 # Important!
 # This variable is not used now. Image Jenkins ignore that.
 variable "jenkins_user_password" {
-  default     = "PaSsw0rD"
-  type        = string
   description = "The user password in Jenkins"
+  type        = string
+  default     = "PaSsw0rD"
 }

@@ -9,4 +9,5 @@ module "deploy_jenkins" {
   availability_zone = "c"
   instance_type     = "t2.micro"
   key_name          = "jenkins"
+  create_s3_bucket  = true
 }

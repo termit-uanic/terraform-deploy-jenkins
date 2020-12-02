@@ -45,6 +45,8 @@ data "aws_ami" "ami_latest" {
 # name must be without dot - for able to mount in EC2 as drive
 ###############################################################
 resource "aws_s3_bucket" "jenkins_backup" {
+  count = var.create_s3_bucket ? 1 : 0
+
   bucket = "${var.company_name}--jenkins-backup--${var.region}--${data.aws_caller_identity.current.account_id}"
   acl    = "private"
 
@@ -62,6 +64,8 @@ resource "aws_s3_bucket" "jenkins_backup" {
 # Data for assign role
 ###############################################################
 data "aws_iam_policy_document" "role_assume_policy" {
+  count = var.create_s3_bucket ? 1 : 0
+
   statement {
     effect  = "Allow"
     actions = ["sts:AssumeRole"]
@@ -77,8 +81,10 @@ data "aws_iam_policy_document" "role_assume_policy" {
 # create role for access to s3 bucket
 ###############################################################
 resource "aws_iam_role" "s3_access_role" {
+  count = var.create_s3_bucket ? 1 : 0
+
   name               = "s3_access_role_to_jenkins_bucket"
-  assume_role_policy = data.aws_iam_policy_document.role_assume_policy.json
+  assume_role_policy = data.aws_iam_policy_document.role_assume_policy[0].json
 
   tags = {
     Name        = var.jenkins_name
@@ -90,27 +96,33 @@ resource "aws_iam_role" "s3_access_role" {
 # create access policy
 ###############################################################
 resource "aws_iam_policy" "s3_access_policy" {
+  count = var.create_s3_bucket ? 1 : 0
+
   name        = "s3_policy_to_jenkins_bucket"
   path        = "/"
   description = "Write access to s3 bucket"
 
-  policy = templatefile("${path.module}/templates/s3_policy.json.tpl", { name_bucket = aws_s3_bucket.jenkins_backup.bucket })
+  policy = templatefile("${path.module}/templates/s3_policy.json.tpl", { name_bucket = aws_s3_bucket.jenkins_backup[0].bucket })
 }
 
 ###############################################################
 # attach policy to role
 ###############################################################
 resource "aws_iam_role_policy_attachment" "attach" {
-  role       = aws_iam_role.s3_access_role.name
-  policy_arn = aws_iam_policy.s3_access_policy.arn
+  count = var.create_s3_bucket ? 1 : 0
+
+  role       = aws_iam_role.s3_access_role[0].name
+  policy_arn = aws_iam_policy.s3_access_policy[0].arn
 }
 
 ###############################################################
 # create profile for access to s3 bucket
 ###############################################################
 resource "aws_iam_instance_profile" "s3_access_profile" {
+  count = var.create_s3_bucket ? 1 : 0
+
   name = "s3_access_profile_to_jenkins_bucket"
-  role = aws_iam_role.s3_access_role.name
+  role = aws_iam_role.s3_access_role[0].name
 }
 
 ###############################################################
@@ -237,7 +249,7 @@ resource "aws_instance" "jenkins" {
   ami                    = data.aws_ami.ami_latest.id
   key_name               = var.key_name
   user_data              = templatefile("${path.module}/templates/user_data.sh.tpl", { JENKINS_USER_NAME = var.jenkins_user_name, JENKINS_USER_PASSWORD = var.jenkins_user_password })
-  iam_instance_profile   = aws_iam_instance_profile.s3_access_profile.name
+  iam_instance_profile   = var.create_s3_bucket ? aws_iam_instance_profile.s3_access_profile[0].name : null
   availability_zone      = "${var.region}${var.availability_zone}"
   subnet_id              = aws_subnet.jenkins_subnet.id
 
@@ -245,9 +257,4 @@ resource "aws_instance" "jenkins" {
     Name        = var.jenkins_name
     Environment = var.tag_enviroment
   }
-
-  depends_on = [
-    aws_iam_role.s3_access_role,
-    aws_s3_bucket.jenkins_backup,
-  ]
 }
