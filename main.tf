@@ -50,8 +50,23 @@ resource "aws_s3_bucket" "jenkins_backup" {
   bucket = "${var.company_name}--jenkins-backup--${var.region}--${data.aws_caller_identity.current.account_id}"
   acl    = "private"
 
+  # Allow deletion of non-empty bucket
+  force_destroy = false
+
   versioning {
     enabled = false
+  }
+
+  lifecycle_rule {
+    id      = "backup_files"
+    enabled = true
+
+    expiration {
+      days = 14
+    }
+    noncurrent_version_expiration {
+      days = 20
+    }
   }
 
   tags = {
