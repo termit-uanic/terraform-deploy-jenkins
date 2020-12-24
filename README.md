@@ -39,7 +39,8 @@ You should have ssh key in EC2 Key Pairs.
 | instance\_type | Kind of type instance | string | t2.micro | no |
 | cidr\_block | The CIDR block for vpc and subnet | string | 192.168.1.0/24 | no |
 | key\_name | SSH key name in your AWS account for AWS instances | string | jenkins | no |
-| create_s3_bucket | Create S3 bucket for backup or not | bool | true | no |
+| create\_s3\_bucket | Create S3 bucket for backup or not | bool | true | no |
+| create\_efs\_drive | Create EFS partition for Jenkins data | bool | true | no |
 | jenkins\_user\_name | The user name in Jenkins. **Important**: This variable is not used now. Image Jenkins ignore that. | string | admin | no |
 | jenkins\_user\_password | The user password in Jenkins. **Important**: This variable is not used now. Image Jenkins ignore that. | string | PaSsw0rD | no |
 

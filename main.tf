@@ -242,6 +242,15 @@ resource "aws_security_group" "sg_jenkins" {
     "0.0.0.0/0"]
   }
 
+  # NFS
+  ingress {
+    from_port = 2049
+    to_port   = 2049
+    protocol  = "tcp"
+    cidr_blocks = [
+    "0.0.0.0/0"]
+  }
+
   egress {
     from_port = 0
     to_port   = 0
@@ -257,6 +266,20 @@ resource "aws_security_group" "sg_jenkins" {
 }
 
 ###############################################################
+# create efs partition
+###############################################################
+resource "aws_efs_file_system" "efs_partition" {
+  count = var.create_efs_drive ? 1 : 0
+
+  creation_token = "${var.company_name}--jenkins-data--${var.region}--${data.aws_caller_identity.current.account_id}"
+
+  tags = {
+    Name        = var.jenkins_name
+    Environment = var.tag_enviroment
+  }
+}
+
+###############################################################
 # create ec2 instance
 ###############################################################
 resource "aws_instance" "jenkins" {
@@ -264,10 +287,20 @@ resource "aws_instance" "jenkins" {
   vpc_security_group_ids = [aws_security_group.sg_jenkins.id] # for not default VPC we need use vpc_security_group_ids instead security_groups
   ami                    = data.aws_ami.ami_latest.id
   key_name               = var.key_name
-  user_data              = templatefile("${path.module}/templates/user_data.sh.tpl", { JENKINS_USER_NAME = var.jenkins_user_name, JENKINS_USER_PASSWORD = var.jenkins_user_password })
-  iam_instance_profile   = var.create_s3_bucket ? aws_iam_instance_profile.s3_access_profile[0].name : null
-  availability_zone      = "${var.region}${var.availability_zone}"
-  subnet_id              = aws_subnet.jenkins_subnet.id
+  user_data = templatefile("${path.module}/templates/user_data.sh.tpl",
+    {
+      JENKINS_USER_NAME     = var.jenkins_user_name,
+      JENKINS_USER_PASSWORD = var.jenkins_user_password,
+      MOUNT_EFS             = var.create_efs_drive ? true : false,
+      EFS_DNS_NAME          = var.create_efs_drive ? aws_efs_file_system.efs_partition[0].id : "null",
+  })
+  iam_instance_profile = var.create_s3_bucket ? aws_iam_instance_profile.s3_access_profile[0].name : null
+  availability_zone    = "${var.region}${var.availability_zone}"
+  subnet_id            = aws_subnet.jenkins_subnet.id
+
+  depends_on = [
+    aws_efs_file_system.efs_partition
+  ]
 
   tags = {
     Name        = var.jenkins_name

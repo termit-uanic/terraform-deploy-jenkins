@@ -20,12 +20,14 @@ variable "ami_owners" {
   description = "The owners of ami images for search"
   type        = list
   default     = ["099720109477"] # Canonical
+  # 137112412989 - Amazon
 }
 
 variable "ami_search_strings" {
   description = "The array of search strings as part name of image"
   type        = list
-  default     = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-*"]
+  default     = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-*"] # Canonical ubuntu 20.04
+  # amzn2-ami-hvm-2.0.*-x86_64-gp2 - Amazon linux
 }
 
 variable "ami_arch" {
@@ -66,6 +68,12 @@ variable "key_name" {
 
 variable "create_s3_bucket" {
   description = "Create S3 bucket for backup"
+  type        = bool
+  default     = true
+}
+
+variable "create_efs_drive" {
+  description = "Create EFS partition for Jenkins data"
   type        = bool
   default     = true
 }
