@@ -271,13 +271,20 @@ resource "aws_security_group" "sg_jenkins" {
 resource "aws_efs_file_system" "efs_partition" {
   count = var.create_efs_drive ? 1 : 0
 
+  # max 64 characters
   creation_token = "${var.company_name}--jenkins-data--${var.region}--${data.aws_caller_identity.current.account_id}"
+
+  performance_mode = "generalPurpose"
 
   tags = {
     Name        = var.jenkins_name
     Environment = var.tag_enviroment
   }
 }
+
+###############################################################
+# create efs partition
+###############################################################
 
 ###############################################################
 # create ec2 instance

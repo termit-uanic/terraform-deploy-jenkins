@@ -16,23 +16,31 @@ variable "availability_zone" {
   default     = "b"
 }
 
+# If you use efs remember: EFS support
+# - Amazon Linux 2
+# - Amazon Linux
+# - Debian version 9 and newer
+# - Fedora version 28 and newer
+# - Red Hat Enterprise Linux (and derivatives such as CentOS) version 7 and newer
+# - Ubuntu 16.04 LTS and newer
+
 variable "ami_owners" {
   description = "The owners of ami images for search"
-  type        = list
+  type        = list(any)
   default     = ["099720109477"] # Canonical
   # 137112412989 - Amazon
 }
 
 variable "ami_search_strings" {
   description = "The array of search strings as part name of image"
-  type        = list
+  type        = list(any)
   default     = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-*"] # Canonical ubuntu 20.04
   # amzn2-ami-hvm-2.0.*-x86_64-gp2 - Amazon linux
 }
 
 variable "ami_arch" {
   description = "The architecture for image"
-  type        = list
+  type        = list(any)
   default     = ["x86_64"]
 }
 

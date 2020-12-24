@@ -28,7 +28,7 @@ You should have ssh key in EC2 Key Pairs.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| company\_name | The name of company. Name is without under score, lowercase letter. | string | my_company | no |
+| company\_name | The name of company. Name is without under score, lowercase letter. | string | mycompany | no |
 | region | The AWS region to create resources in | string | eu-central-1 | no |
 | availability\_zone | The key availability zone in region | string | b | no |
 | ami\_owners | The owners of ami images for search | list | ["099720109477"] | no |

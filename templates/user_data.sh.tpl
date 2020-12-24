@@ -69,7 +69,8 @@ mkdir -p $${JENKINS_HOME}
 # Set permissions
 chmod -R 777 $${JENKINS_HOME}
 
-# Mount EFS
+# Mount EFS one time and prepare to mount through efs-utils
+# efs-utils will be installing via SSM
 if [ ${MOUNT_EFS} ]; then
   # For Amazon linux
   if [ $${OS} = "Amazon Linux" || $${OS} = "CentOS" ]; then
