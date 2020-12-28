@@ -76,71 +76,6 @@ resource "aws_s3_bucket" "jenkins_backup" {
 }
 
 ###############################################################
-# Data for assign role
-###############################################################
-data "aws_iam_policy_document" "role_assume_policy" {
-  count = var.create_s3_bucket ? 1 : 0
-
-  statement {
-    effect  = "Allow"
-    actions = ["sts:AssumeRole"]
-
-    principals {
-      type        = "Service"
-      identifiers = ["ec2.amazonaws.com"]
-    }
-  }
-}
-
-###############################################################
-# create role for access to s3 bucket
-###############################################################
-resource "aws_iam_role" "s3_access_role" {
-  count = var.create_s3_bucket ? 1 : 0
-
-  name               = "s3_access_role_to_jenkins_bucket"
-  assume_role_policy = data.aws_iam_policy_document.role_assume_policy[0].json
-
-  tags = {
-    Name        = var.jenkins_name
-    Environment = var.tag_enviroment
-  }
-}
-
-###############################################################
-# create access policy
-###############################################################
-resource "aws_iam_policy" "s3_access_policy" {
-  count = var.create_s3_bucket ? 1 : 0
-
-  name        = "s3_policy_to_jenkins_bucket"
-  path        = "/"
-  description = "Write access to s3 bucket"
-
-  policy = templatefile("${path.module}/templates/s3_policy.json.tpl", { name_bucket = aws_s3_bucket.jenkins_backup[0].bucket })
-}
-
-###############################################################
-# attach policy to role
-###############################################################
-resource "aws_iam_role_policy_attachment" "attach" {
-  count = var.create_s3_bucket ? 1 : 0
-
-  role       = aws_iam_role.s3_access_role[0].name
-  policy_arn = aws_iam_policy.s3_access_policy[0].arn
-}
-
-###############################################################
-# create profile for access to s3 bucket
-###############################################################
-resource "aws_iam_instance_profile" "s3_access_profile" {
-  count = var.create_s3_bucket ? 1 : 0
-
-  name = "s3_access_profile_to_jenkins_bucket"
-  role = aws_iam_role.s3_access_role[0].name
-}
-
-###############################################################
 # create vpc
 ###############################################################
 resource "aws_vpc" "jenkins_vpc" {
@@ -283,8 +218,15 @@ resource "aws_efs_file_system" "efs_partition" {
 }
 
 ###############################################################
-# create efs partition
+# create efs mount target
 ###############################################################
+resource "aws_efs_mount_target" "efs_jenkins_mount_target" {
+  count = var.create_efs_drive ? 1 : 0
+
+  file_system_id  = aws_efs_file_system.efs_partition[0].id
+  subnet_id       = aws_subnet.jenkins_subnet.id
+  security_groups = [aws_security_group.sg_jenkins.id]
+}
 
 ###############################################################
 # create ec2 instance
@@ -301,12 +243,13 @@ resource "aws_instance" "jenkins" {
       MOUNT_EFS             = var.create_efs_drive ? true : false,
       EFS_DNS_NAME          = var.create_efs_drive ? aws_efs_file_system.efs_partition[0].id : "null",
   })
-  iam_instance_profile = var.create_s3_bucket ? aws_iam_instance_profile.s3_access_profile[0].name : null
+  iam_instance_profile = (var.create_s3_bucket || var.create_efs_drive) ? aws_iam_instance_profile.jenkins_access_profile[0].name : null
   availability_zone    = "${var.region}${var.availability_zone}"
   subnet_id            = aws_subnet.jenkins_subnet.id
 
   depends_on = [
-    aws_efs_file_system.efs_partition
+    aws_efs_file_system.efs_partition,
+    aws_efs_mount_target.efs_jenkins_mount_target
   ]
 
   tags = {

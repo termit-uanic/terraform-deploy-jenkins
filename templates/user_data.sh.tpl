@@ -9,21 +9,21 @@ VER="unknown"
 if [ -f /etc/os-release ]; then
     # freedesktop.org and systemd
     . /etc/os-release
-    OS=$NAME
-    VER=$VERSION_ID
+    OS=$${NAME}
+    VER=$${VERSION_ID}
 elif type lsb_release >/dev/null 2>&1; then
     # linuxbase.org
-    OS=$(lsb_release -si)
-    VER=$(lsb_release -sr)
+    OS=`lsb_release -si`
+    VER=`lsb_release -sr`
 elif [ -f /etc/lsb-release ]; then
     # For some versions of Debian/Ubuntu without lsb_release command
     . /etc/lsb-release
-    OS=$DISTRIB_ID
-    VER=$DISTRIB_RELEASE
+    OS=$${DISTRIB_ID}
+    VER=$${DISTRIB_RELEASE}
 elif [ -f /etc/debian_version ]; then
     # Older Debian/Ubuntu/etc.
     OS=Debian
-    VER=$(cat /etc/debian_version)
+    VER=`cat /etc/debian_version`
 elif [ -f /etc/SuSe-release ]; then
     # Older SuSE/etc.
     ...
@@ -32,26 +32,44 @@ elif [ -f /etc/redhat-release ]; then
     ...
 else
     # Fall back to uname, e.g. "Linux <version>", also works for BSD, etc.
-    OS=$(uname -s)
-    VER=$(uname -r)
+    OS=`uname -s`
+    VER=`uname -r`
 fi
 
 ################################################################################
 # Update and install software
 ################################################################################
-PACKAGES_COMMON="vim"
+# common packages
+PACKAGES_COMMON="vim mc"
+# packages for amazon and centos
 PACKAGES_CENTOS="docker amazon-efs-utils"
+PACKAGES_CENTOS_DOCKER="chkconfig docker on"
+# packages for amazon2
+PACKAGES_AMAZON="amazon-efs-utils"
+PACKAGES_AMAZON_DOCKER="amazon-linux-extras install docker && systemctl enable docker"
+# packages for debian based
 PACKAGES_DEBIAN_BASED="docker.io ntfs-common s3fs"
 
-# For Amazon linux
-if [ $${OS} = "Amazon Linux" || $${OS} = "CentOS" ]; then
+# For Amazon linux and CentOS
+if ( [[ $${OS} = "Amazon Linux" ]] && [[ $${VER} = "2" ]] ) || [[ $${OS} = "CentOS" ]]; then
     yum update -y
     yum upgrade -y
     yum install -y $${PACKAGES_COMMON} $${PACKAGES_CENTOS}
+    eval $${PACKAGES_CENTOS_DOCKER}
+    service docker start
+fi
+
+# For Amazon linux 2
+if [[ $${OS} = "Amazon Linux" ]] && [[ $${VER} = "2" ]]; then
+    yum update -y
+    yum upgrade -y
+    yum install -y $${PACKAGES_COMMON} $${PACKAGES_AMAZON}
+    eval $${PACKAGES_AMAZON_DOCKER}
+    service docker start
 fi
 
 # For Ubuntu & Debian
-if [ $${OS} = "Ubuntu" ] || [ $${OS} -qe "Debian" ]; then
+if [[ $${OS} = "Ubuntu" ]] || [[ $${OS} = "Debian" ]]; then
     apt update -y
     apt upgrade -y
     apt install -y $${PACKAGES_COMMON} $${PACKAGES_DEBIAN_BASED}
@@ -67,22 +85,29 @@ JENKINS_HOME=/opt/jenkins_home
 mkdir -p $${JENKINS_HOME}
 
 # Set permissions
-chmod -R 777 $${JENKINS_HOME}
+if [[ $${OS} = "Amazon Linux" ]] || [[ $${OS} = "CentOS" ]]; then
+    chown -R ec2-user:ec2-user $${JENKINS_HOME}
+fi
+if [[ $${OS} = "Ubuntu" ]] || [[ $${OS} = "Debian" ]]; then
+    chown -R ubuntu:ubuntu $${JENKINS_HOME}
+fi
+
+# Set permissions
+chmod -R u+xwr,g+xwr,o+xwr $${JENKINS_HOME}
 
 # Mount EFS one time and prepare to mount through efs-utils
 # efs-utils will be installing via SSM
 if [ ${MOUNT_EFS} ]; then
   # For Amazon linux
-  if [ $${OS} = "Amazon Linux" || $${OS} = "CentOS" ]; then
-      mount -t efs -o tls ${EFS_DNS_NAME}:/ $${JENKINS_HOME}
+  if [[ $${OS} = "Amazon Linux" ]] || [[ $${OS} = "CentOS" ]]; then
+      mount -t efs ${EFS_DNS_NAME}:/ $${JENKINS_HOME}
       echo "${EFS_DNS_NAME}:/ $${JENKINS_HOME} efs defaults,_netdev 0 0" >> /etc/fstab
   fi
 
   # For Ubuntu & Debian
-  if [ $${OS} = "Ubuntu" ] || [ $${OS} -qe "Debian" ]; then
+  if [[ $${OS} = "Ubuntu" ]] || [[ $${OS} = "Debian" ]]; then
       mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport ${EFS_DNS_NAME}:/   $${JENKINS_HOME}
       echo "${EFS_DNS_NAME}:/ $${JENKINS_HOME} nfs defaults,_netdev 0 0" >> /etc/fstab
-
   fi
 
 fi
